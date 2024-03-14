@@ -9,7 +9,7 @@ from util import *
 # from workflow import *
 import scipy.cluster.hierarchy as sch
 from workflow import tfidf_of_cluster
-from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
+from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCMultistepScheduler
 import torch
 import sys
 import numpy
@@ -24,10 +24,21 @@ device_id = sys.argv[1]
 device = "cuda:" + device_id
 print(device)
 
-# Use the DPMSolverMultistepScheduler (DPM-Solver++) scheduler here instead
 print("Begin to load model")
-pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16, force_download=True)
-pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
+####################
+# load control net and stable diffusion v1-5
+controlnet = ControlNetModel.from_pretrained(controlnet_model_id, torch_dtype=torch.float16)
+pipe = StableDiffusionControlNetPipeline.from_pretrained(
+    sd_model_id, controlnet=controlnet, torch_dtype=torch.float16
+)
+
+# speed up diffusion process with faster scheduler and memory optimization
+pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
+####################
+
+# Use the DPMSolverMultistepScheduler (DPM-Solver++) scheduler here instead
+# pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16, force_download=True)
+# pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
 
 print("Set device")
 pipe = pipe.to(device)
