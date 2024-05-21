@@ -61,7 +61,11 @@ def sd():
         scale_left += 0.5
     w_len = len(w_list)
     print('Guidance scale sample list:', w_list)
-    
+
+    # test canny image
+    canny_image = get_canny_image()
+    print(type(canny_image))
+
     result_dict = []
     for i in range(int(epo)):
         st = time.time()
@@ -79,11 +83,15 @@ def sd():
 
         if len(negative_prompt) == 0:
             print('negative_prompt is None')
-            images = pipe(prompt = prompt, height = sd_height, width = sd_width, num_inference_steps = n_inference_steps,
+            # images = pipe(prompt = prompt, height = sd_height, width = sd_width, num_inference_steps = n_inference_steps,
+            #     guidance_scale = float(scale), num_images_per_prompt = n_images_per_prompt, generator  = generators)
+            images = pipe(image=canny_image, prompt = prompt, height = sd_height, width = sd_width, num_inference_steps = n_inference_steps,
                 guidance_scale = float(scale), num_images_per_prompt = n_images_per_prompt, generator  = generators)
         else:
             print('negative_prompt is', negative_prompt)
-            images = pipe(prompt = prompt, height = sd_height, width = sd_width, num_inference_steps = n_inference_steps,
+            # images = pipe(prompt = prompt, height = sd_height, width = sd_width, num_inference_steps = n_inference_steps,
+            #     guidance_scale = float(scale), negative_prompt = negative_prompt, num_images_per_prompt = n_images_per_prompt, generator  = generators)
+            images = pipe(image=canny_image, prompt = prompt, height = sd_height, width = sd_width, num_inference_steps = n_inference_steps,
                 guidance_scale = float(scale), negative_prompt = negative_prompt, num_images_per_prompt = n_images_per_prompt, generator  = generators)
         print("[Infer time: {0}]".format(time.time() - st))
 

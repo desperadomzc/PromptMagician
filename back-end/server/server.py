@@ -1,6 +1,7 @@
 import os 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = "0"  # Use 0-index GPU for server pipeline
+os.environ['CUDA_VISIBLE_DEVICES'] = "3"  # Use 0-index GPU for server pipeline
+print("==========CUDA_VISIBLE_DEVICES=3===========")
 
 from flask import Flask, render_template, request, make_response
 from flask_cors import *
