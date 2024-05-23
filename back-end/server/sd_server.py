@@ -54,7 +54,7 @@ def sd():
     prompt = args.get('prompt')
     negative_prompt = args.get('negative_prompt')
 
-    # set scale list
+    # set scale listm
     w_list = []
     while (scale_left <= scale_right):
         w_list.append(scale_left)

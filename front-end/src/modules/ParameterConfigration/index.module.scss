@@ -29,6 +29,31 @@
       }
     }
   }
+  .select-model {
+    height: 40%;
+    display: flex;
+    flex-direction: column;
+    margin-top: 15px;
+    .select-model-title {
+      font-size: 20px;
+      color: rgb(119, 119, 119);
+      font-weight: bolder;
+    }
+    .select-model-select {
+      margin-top: 5px;
+    }
+    .select-model-image {
+      margin-top: 5px;
+      height: 100px;
+    }
+    :global {
+      .ant-input:focus,
+      .ant-input:hover {
+        border: 1px solid rgb(119, 119, 119) !important;
+        box-shadow: none !important;
+      }
+    }
+  }
   .guidance-scale {
     height: 30%;
     display: flex;
