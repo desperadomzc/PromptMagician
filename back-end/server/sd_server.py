@@ -27,13 +27,29 @@ print(device)
 print("Begin to load model")
 ####################
 # load control net and stable diffusion v1-5
-controlnet = ControlNetModel.from_pretrained(controlnet_model_id, torch_dtype=torch.float16)
-pipe = StableDiffusionControlNetPipeline.from_pretrained(
-    sd_model_id, controlnet=controlnet, torch_dtype=torch.float16
+controlnet_canny = ControlNetModel.from_pretrained(canny_model_id, torch_dtype=torch.float16)
+controlnet_depth = ControlNetModel.from_pretrained(depth_model_id, torch_dtype=torch.float16)
+controlnet_openpose = ControlNetModel.from_pretrained(openpose_model_id, torch_dtype=torch.float16)
+controlnet_scribble = ControlNetModel.from_pretrained(scribble_model_id, torch_dtype=torch.float16)
+
+pipe_canny = StableDiffusionControlNetPipeline.from_pretrained(
+    sd_model_id, controlnet=controlnet_canny, torch_dtype=torch.float16
+)
+pipe_depth = StableDiffusionControlNetPipeline.from_pretrained(
+    sd_model_id, controlnet=controlnet_depth, torch_dtype=torch.float16
+)
+pipe_openpose = StableDiffusionControlNetPipeline.from_pretrained(
+    sd_model_id, controlnet=controlnet_openpose, torch_dtype=torch.float16
+)
+pipe_scribble = StableDiffusionControlNetPipeline.from_pretrained(
+    sd_model_id, controlnet=controlnet_scribble, torch_dtype=torch.float16
 )
 
 # speed up diffusion process with faster scheduler and memory optimization
-pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
+pipe_canny.scheduler = UniPCMultistepScheduler.from_config(pipe_canny.scheduler.config)
+pipe_depth.scheduler = UniPCMultistepScheduler.from_config(pipe_depth.scheduler.config)
+pipe_openpose.scheduler = UniPCMultistepScheduler.from_config(pipe_openpose.scheduler.config)
+pipe_scribble.scheduler = UniPCMultistepScheduler.from_config(pipe_scribble.scheduler.config)
 ####################
 
 # Use the DPMSolverMultistepScheduler (DPM-Solver++) scheduler here instead
@@ -41,8 +57,12 @@ pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
 # pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
 
 print("Set device")
-pipe = pipe.to(device)
+pipe_canny = pipe_canny.to(device)
+pipe_depth = pipe_depth.to(device)
+pipe_openpose = pipe_openpose.to(device)
+pipe_scribble = pipe_scribble.to(device)
 print("Start inference")
+
 
 @app.route('/sd')
 def sd():
@@ -53,6 +73,8 @@ def sd():
     scale_right = float(args.get('scale_right'))
     prompt = args.get('prompt')
     negative_prompt = args.get('negative_prompt')
+    select_model = args.get('select_model')
+    image_url = args.get('image_url')
 
     # set scale listm
     w_list = []
@@ -62,9 +84,24 @@ def sd():
     w_len = len(w_list)
     print('Guidance scale sample list:', w_list)
 
-    # test canny image
-    canny_image = get_canny_image()
-    print(type(canny_image))
+    processed_image = None
+    selected_pipe = None
+
+    if select_model == 'canny':
+        # get canny image
+        processed_image = get_canny_image(image_url)
+        selected_pipe = pipe_canny
+    elif select_model == 'depth':
+        processed_image = get_depth_image(image_url)
+        selected_pipe = pipe_depth
+    elif select_model == 'openpose':
+        processed_image = get_openpose_image(image_url)
+        selected_pipe = pipe_openpose
+    elif select_model == 'scribble':
+        processed_image = get_scribble_image(image_url)
+        selected_pipe = pipe_scribble
+    else:
+        raise ValueError("Select model name is illegal: " + select_model)
 
     result_dict = []
     for i in range(int(epo)):
@@ -75,7 +112,7 @@ def sd():
         generators = []
         seed_list = []
         for i in range(n_images_per_prompt):
-            seed = random.randrange(2**32 - 1)
+            seed = random.randrange(2 ** 32 - 1)
             generator = torch.Generator(device='cuda')
             generator = generator.manual_seed(seed)
             generators.append(generator)
@@ -85,20 +122,24 @@ def sd():
             print('negative_prompt is None')
             # images = pipe(prompt = prompt, height = sd_height, width = sd_width, num_inference_steps = n_inference_steps,
             #     guidance_scale = float(scale), num_images_per_prompt = n_images_per_prompt, generator  = generators)
-            images = pipe(image=canny_image, prompt = prompt, height = sd_height, width = sd_width, num_inference_steps = n_inference_steps,
-                guidance_scale = float(scale), num_images_per_prompt = n_images_per_prompt, generator  = generators)
+            images = selected_pipe(image=processed_image, prompt=prompt, height=sd_height, width=sd_width,
+                                   num_inference_steps=n_inference_steps,
+                                   guidance_scale=float(scale), num_images_per_prompt=n_images_per_prompt,
+                                   generator=generators)
         else:
             print('negative_prompt is', negative_prompt)
             # images = pipe(prompt = prompt, height = sd_height, width = sd_width, num_inference_steps = n_inference_steps,
             #     guidance_scale = float(scale), negative_prompt = negative_prompt, num_images_per_prompt = n_images_per_prompt, generator  = generators)
-            images = pipe(image=canny_image, prompt = prompt, height = sd_height, width = sd_width, num_inference_steps = n_inference_steps,
-                guidance_scale = float(scale), negative_prompt = negative_prompt, num_images_per_prompt = n_images_per_prompt, generator  = generators)
+            images = selected_pipe(image=processed_image, prompt=prompt, height=sd_height, width=sd_width,
+                                   num_inference_steps=n_inference_steps,
+                                   guidance_scale=float(scale), negative_prompt=negative_prompt,
+                                   num_images_per_prompt=n_images_per_prompt, generator=generators)
         print("[Infer time: {0}]".format(time.time() - st))
 
         for j in range(0, n_images_per_prompt):
             inner = {}
             image = images.images[j]
-            inner['id'] = str( device_id * n_images_per_prompt * epo + n_images_per_prompt * i + j)
+            inner['id'] = str(device_id * n_images_per_prompt * epo + n_images_per_prompt * i + j)
             inner['img'] = getImgStr(image)
             inner['x'] = str(sd_width)
             inner['y'] = str(sd_height)
@@ -109,14 +150,6 @@ def sd():
 
     return json.dumps(result_dict)
 
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=False, threaded=True, port = (5005 + int(device_id)))
-
-
-
-
-
-
-
-
-
+    app.run(host='0.0.0.0', debug=False, threaded=True, port=(5005 + int(device_id)))

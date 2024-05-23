@@ -152,11 +152,13 @@ def get_keyword_position(keyword, text_list, child_id_list, embed_position, posi
 
 
 # stable diffusion
-def sd_data_produce(prompt: str, negative_prompt: str, scale_left: float, scale_right: float, n_epo=1):
+def sd_data_produce(prompt: str, negative_prompt: str, scale_left: float, scale_right: float, select_model: str,
+                    image_url: str, n_epo=1):
     thread_list = []
     print("number of device: ", str(n_device))
     for i in range(0, n_device):
-        t = threading.Thread(target=sd_infer, args=(i, scale_left, scale_right, prompt, negative_prompt, n_epo))
+        t = threading.Thread(target=sd_infer,
+                             args=(i, scale_left, scale_right, prompt, negative_prompt, select_model, image_url, n_epo))
         thread_list.append(t)
 
     for t in thread_list:
@@ -169,7 +171,8 @@ def sd_data_produce(prompt: str, negative_prompt: str, scale_left: float, scale_
     return sd_data
 
 
-def sd_infer(device_num: int, scale_left: float, scale_right: float, prompt: str, negative_prompt: str, n_epo=1):
+def sd_infer(device_num: int, scale_left: float, scale_right: float, prompt: str, negative_prompt: str,
+             select_model: str, image_url: str, n_epo=1):
     port = 5005 + device_num
     params = {
         'epo': n_epo,
@@ -178,6 +181,8 @@ def sd_infer(device_num: int, scale_left: float, scale_right: float, prompt: str
         'scale_right': scale_right,
         'prompt': prompt,
         'negative_prompt': negative_prompt,
+        'select_model': select_model,
+        'image_url': image_url
     }
     param_encode = urlencode(params)
     url = sd_ip + str(port) + '/sd' + '?' + param_encode
@@ -245,9 +250,9 @@ def str_one_in_str_two(str_one, str_two):
 # lowThreshold: The value entered by the user moving the Trackbar
 # highThreshold: Set in the program as three times the lower threshold (following Canny’s recommendation)
 # kernel_size: We defined it to be 3 (the size of the Sobel kernel to be used internally
-def get_canny_image():
+def get_canny_image(image_url):
     original_image = load_image(
-        "https://hf.co/datasets/huggingface/documentation-images/resolve/main/diffusers/input_image_vermeer.png"
+        image_url
     )
 
     image = np.array(original_image)
@@ -261,3 +266,12 @@ def get_canny_image():
     canny_image = Image.fromarray(image)
 
     return canny_image
+
+def get_depth_image(image_url):
+    return
+
+def get_openpose_image(image_url):
+    return
+
+def get_scribble_image(image_url):
+    return

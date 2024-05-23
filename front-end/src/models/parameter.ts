@@ -6,6 +6,7 @@ export interface parameterData {
     selectModelData: string;
     guidanceScaleData: [number, number];
     randomSeedData: number;
+    imageUrlData: string;
 }
 
 const initialState: parameterData = {
@@ -14,6 +15,7 @@ const initialState: parameterData = {
     selectModelData: "canny",
     guidanceScaleData: [0, 50],
     randomSeedData: 0,
+    imageUrlData: ""
 };
 
 const parameter = {

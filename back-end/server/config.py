@@ -9,7 +9,14 @@ n_test = 5
 
 # stable diffusion
 # model_id = "CompVis/stable-diffusion-v1-4"
-controlnet_model_id = "lllyasviel/sd-controlnet-canny"
+canny_model_id = "lllyasviel/sd-controlnet-canny"
+depth_model_id = "lllyasviel/sd-controlnet-depth"
+hed_model_id = "lllyasviel/sd-controlnet-hed"
+mlsd_model_id = "lllyasviel/sd-controlnet-mlsd"
+openpose_model_id = "lllyasviel/sd-controlnet-openpose"
+scribble_model_id = "lllyasviel/sd-controlnet-scribble"
+seg_model_id = "lllyasviel/sd-controlnet_seg"
+
 sd_model_id = "runwayml/stable-diffusion-v1-5"
 sd_height = 512
 sd_width = 512

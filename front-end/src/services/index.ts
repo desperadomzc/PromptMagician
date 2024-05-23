@@ -69,6 +69,8 @@ export const getAllImageInfo = async (
           negativePrompt: parameter.negativePromptData,
           guidanceScale: parameter.guidanceScaleData.join(","),
           numberOfGeneration: parameter.randomSeedData,
+          selectModel: parameter.selectModelData,
+          imageUrl: encodeURIComponent(parameter.imageUrlData),
         },
       })
       .then((res) => {

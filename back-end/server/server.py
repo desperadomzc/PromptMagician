@@ -1,9 +1,10 @@
-import os 
+import os
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = "3"  # Use 0-index GPU for server pipeline
 print("==========CUDA_VISIBLE_DEVICES=3===========")
 
-from flask import Flask, render_template, request, make_response
+from flask import Flask, render_template, request, make_response, jsonify
 from flask_cors import *
 import numpy as np
 import torch
@@ -30,24 +31,34 @@ sd_cfg_list, embed_position = [], []
 
 # Device configuration and model loading
 print("Start to load dataset from poloclub/diffusiondb...")
-dataset = datasets.load_dataset('poloclub/diffusiondb', '2m_first_100k')
-dataset.save_to_disk('poloclub/diffusiondb_2m_first_100k')
+# dataset = datasets.load_dataset('poloclub/diffusiondb', '2m_first_100k')
+# dataset.save_to_disk('poloclub/diffusiondb_2m_first_100k')
 # dataset = datasets.load_from_disk("./poloclub/diffusiondb_2m_first_100k")
-print(dataset["train"])
+# print(dataset["train"])
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print('[Server] device', device)
 model, preprocess_img = clip.load("ViT-B/32", device=device, download_root='../.cache/clip')
 
 ###################   Prepare diffisonDB  ###########################
-print('Start to load features from cache...') 
+print('Start to load features from cache...')
 db_image_features, db_text_features, db_combined_feature, db_filter_text_list, db_id_list = load_data_from_pickle(
     save_path='../.cache/diffusiondb-feature/feature.pickle')
 
 
 @app.route('/image_overview')
 def get_image_overview():
+    # TODO
+    print("================== not printed")
     request_data = requestParse(request)
+
+    # add select controlnet model type (canny/deep/...) and origin image input
+    select_model = request_data['selectModel']
+    image_url = request_data['imageUrl']
+    print("received url: " + image_url)
+
+    return
+
     prompt = request_data['prompt']
     negative_prompt = request_data['negativePrompt']
     guidanceScale = request_data['guidanceScale'].split(',')
@@ -60,7 +71,7 @@ def get_image_overview():
 
     ###################     stable diffison   ######################
     # Stable diffusion produce data
-    sd_data = sd_data_produce(prompt, negative_prompt, scale_left, scale_right, n_sd)
+    sd_data = sd_data_produce(prompt, negative_prompt, scale_left, scale_right, select_model, image_url, n_sd)
 
     sd_origin_image_list, sd_process_text_list, sd_seed_list, sd_cfg_list = [], [], [], []
     process_prompt = preprocess_text(prompt, max_duplicate=3, max_len=40)
@@ -93,9 +104,10 @@ def get_image_overview():
     all_cfg_list = sd_cfg_list + search_cfg_list
 
     # Using the image list for embedding
-    image_features, text_features, combined_feature = encode_image_and_text(all_process_img_list, all_process_text_list, encode_model=model)
+    image_features, text_features, combined_feature = encode_image_and_text(all_process_img_list, all_process_text_list,
+                                                                            encode_model=model)
     embed_position = embed_feature(combined_feature.cpu())
-    
+
     image_result_list = []
     for i in range(numberOfGeneration + n_search):
         data_item = {}
@@ -129,8 +141,8 @@ def update_image_overview():
     position_range = np.max(np.max(embed_position, axis=0) - np.min(embed_position, axis=0))
     print('position_range', position_range)
     _, id_to_node, image_to_level, keyword_to_node = get_hierarchical_cluster(
-        tree_node=rootNode, id_to_node={}, image_to_level={}, keyword_to_node=[{}, {}], 
-        text_list=satisfied_process_text, image_position=satisfied_embed_position, threshold=position_range/15)
+        tree_node=rootNode, id_to_node={}, image_to_level={}, keyword_to_node=[{}, {}],
+        text_list=satisfied_process_text, image_position=satisfied_embed_position, threshold=position_range / 15)
     image_id_to_level = {satisfied_image_list[index]: level for index, level in image_to_level.items()}
     level_list = [image_id_to_level[index] if index in image_id_to_level else -1 for index in range(num_image)]
 
@@ -141,7 +153,8 @@ def update_image_overview():
         data_item['text'] = keyword
         data_item['level'] = str(id_to_node[keyword_best_node_dict[keyword]].node_level)
         keyword_position, text_child_id_set = get_keyword_position(
-            keyword, satisfied_process_text, id_to_node[node_id].child_id_list, satisfied_embed_position, position_range)
+            keyword, satisfied_process_text, id_to_node[node_id].child_id_list, satisfied_embed_position,
+            position_range)
         data_item['x'] = str(keyword_position[0])
         data_item['y'] = str(keyword_position[1])
         data_item['related_images'] = ','.join(list(text_child_id_set))
@@ -176,7 +189,7 @@ def get_img_detail():
     image_id_list = request_data['id'].split(',')
     image_id_list = [int(image_id) for image_id in image_id_list]
     print('image_id_list', image_id_list)
-    
+
     global all_origin_img_list, all_process_text_list
     select_cfg_list = [all_cfg_list[i] for i in image_id_list]
 
@@ -190,11 +203,11 @@ def get_img_detail():
         inner['guidanceScale'] = all_cfg_list[i]
         inner['randomSeed'] = all_seed_list[i]
         image_detail_list.append(inner)
-    
+
     tfidf_dict = tfidf_of_cluster(image_id_list, all_process_text_list, num_of_keyword=10)
- 
+
     cfg_count = {'local': value_count(select_cfg_list, min_value=0, max_value=50, num_interval=10)}
-    
+
     result_dict['image'] = image_detail_list
     result_dict['text'] = list(tfidf_dict.keys())
 
@@ -220,9 +233,10 @@ def get_image_rating():
     probs_value_count = value_count(probs_first_values, min_value=0, max_value=1, num_interval=10)
     print('probs_value_count', probs_value_count)
     result_dict = {
-        'rating': [float(i) for i in probs_first_values], 
+        'rating': [float(i) for i in probs_first_values],
         'count': [int(i) for i in probs_value_count]}
     return json.dumps(result_dict)
-    
+
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', threaded=True, port=5001)
+    app.run(host='0.0.0.0', debug=True, threaded=True, port=5001)
