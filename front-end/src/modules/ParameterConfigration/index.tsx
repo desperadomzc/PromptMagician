@@ -131,9 +131,9 @@ const ParameterConfigration = () => {
                     value={currentSelectModel}
                     options={[
                         {value: 'canny', label: 'Canny'},
-                        {value: 'deep', label: 'Deep'},
+                        {value: 'depth', label: 'Depth'},
                         {value: 'scribbles', label: 'Scribbles'},
-                        {value: 'humanPose', label: 'Human Pose'},
+                        {value: 'openpose', label: 'Open Pose'},
                     ]}
                 />
                 <div className={styles["select-model-image"]}>
