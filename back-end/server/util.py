@@ -1,3 +1,5 @@
+import sys
+
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer, TfidfVectorizer
 import pandas as pd
 import re
@@ -16,6 +18,9 @@ from PIL import Image
 from gensim.models.phrases import Phrases, ENGLISH_CONNECTOR_WORDS
 from diffusers.utils import load_image, make_image_grid
 import cv2
+from transformers import pipeline
+from controlnet_aux import OpenposeDetector
+from controlnet_aux import HEDdetector
 
 # stable diffusion data
 sd_data = {}
@@ -155,7 +160,7 @@ def get_keyword_position(keyword, text_list, child_id_list, embed_position, posi
 def sd_data_produce(prompt: str, negative_prompt: str, scale_left: float, scale_right: float, select_model: str,
                     image_url: str, n_epo=1):
     thread_list = []
-    print("number of device: ", str(n_device))
+    print("number of device: ", str(n_device), file=sys.stdout)
     for i in range(0, n_device):
         t = threading.Thread(target=sd_infer,
                              args=(i, scale_left, scale_right, prompt, negative_prompt, select_model, image_url, n_epo))
@@ -173,7 +178,7 @@ def sd_data_produce(prompt: str, negative_prompt: str, scale_left: float, scale_
 
 def sd_infer(device_num: int, scale_left: float, scale_right: float, prompt: str, negative_prompt: str,
              select_model: str, image_url: str, n_epo=1):
-    port = 5005 + device_num
+    port = 5005
     params = {
         'epo': n_epo,
         'device_id': device_num,
@@ -267,11 +272,36 @@ def get_canny_image(image_url):
 
     return canny_image
 
+
 def get_depth_image(image_url):
-    return
+    depth_estimator = pipeline('depth-estimation')
+
+    image = load_image(image_url)
+
+    image = depth_estimator(image)['depth']
+    image = np.array(image)
+    image = image[:, :, None]
+    image = np.concatenate([image, image, image], axis=2)
+    image = Image.fromarray(image)
+
+    return image
+
 
 def get_openpose_image(image_url):
-    return
+    openpose = OpenposeDetector.from_pretrained('lllyasviel/ControlNet')
+
+    image = load_image(image_url)
+
+    image = openpose(image)
+
+    return image
+
 
 def get_scribble_image(image_url):
-    return
+    hed = HEDdetector.from_pretrained('lllyasviel/ControlNet')
+
+    image = load_image(image_url)
+
+    image = hed(image, scribble=True)
+
+    return image

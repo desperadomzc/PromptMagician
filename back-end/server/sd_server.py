@@ -16,6 +16,7 @@ import numpy
 import time
 from config import *
 import random
+import urllib.parse
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
@@ -75,6 +76,12 @@ def sd():
     negative_prompt = args.get('negative_prompt')
     select_model = args.get('select_model')
     image_url = args.get('image_url')
+
+    # decode the image_url
+    if image_url and image_url != '':
+        image_url = urllib.parse.unquote(image_url)
+    else:
+        raise ValueError("Please provide legal image url!")
 
     # set scale listm
     w_list = []
@@ -152,4 +159,4 @@ def sd():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=False, threaded=True, port=(5005 + int(device_id)))
+    app.run(host='0.0.0.0', debug=False, threaded=True, port=5005)

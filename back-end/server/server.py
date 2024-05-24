@@ -1,4 +1,5 @@
 import os
+import urllib.parse
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = "3"  # Use 0-index GPU for server pipeline
@@ -33,7 +34,7 @@ sd_cfg_list, embed_position = [], []
 print("Start to load dataset from poloclub/diffusiondb...")
 # dataset = datasets.load_dataset('poloclub/diffusiondb', '2m_first_100k')
 # dataset.save_to_disk('poloclub/diffusiondb_2m_first_100k')
-# dataset = datasets.load_from_disk("./poloclub/diffusiondb_2m_first_100k")
+dataset = datasets.load_from_disk("./poloclub/diffusiondb_2m_first_100k")
 # print(dataset["train"])
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -48,16 +49,19 @@ db_image_features, db_text_features, db_combined_feature, db_filter_text_list, d
 
 @app.route('/image_overview')
 def get_image_overview():
-    # TODO
-    print("================== not printed")
     request_data = requestParse(request)
 
     # add select controlnet model type (canny/deep/...) and origin image input
     select_model = request_data['selectModel']
     image_url = request_data['imageUrl']
-    print("received url: " + image_url)
 
-    return
+    # decode the image_url
+    if image_url and image_url != '':
+        image_url = urllib.parse.unquote(image_url)
+    else:
+        raise ValueError("Please provide legal image url!")
+    image_url = urllib.parse.unquote(image_url)
+    print("image_url = " + image_url, file=sys.stdout)
 
     prompt = request_data['prompt']
     negative_prompt = request_data['negativePrompt']
@@ -239,4 +243,4 @@ def get_image_rating():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True, threaded=True, port=5001)
+    app.run(host='0.0.0.0', threaded=True, port=5001)
