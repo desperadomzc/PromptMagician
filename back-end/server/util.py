@@ -274,9 +274,9 @@ def get_canny_image(image_url):
 
 
 def get_depth_image(image_url):
-    depth_estimator = pipeline('depth-estimation')
-
     image = load_image(image_url)
+
+    depth_estimator = pipeline('depth-estimation')
 
     image = depth_estimator(image)['depth']
     image = np.array(image)
@@ -288,9 +288,9 @@ def get_depth_image(image_url):
 
 
 def get_openpose_image(image_url):
-    openpose = OpenposeDetector.from_pretrained('lllyasviel/ControlNet')
-
     image = load_image(image_url)
+
+    openpose = OpenposeDetector.from_pretrained('lllyasviel/ControlNet')
 
     image = openpose(image)
 
@@ -298,10 +298,25 @@ def get_openpose_image(image_url):
 
 
 def get_scribble_image(image_url):
-    hed = HEDdetector.from_pretrained('lllyasviel/ControlNet')
-
     image = load_image(image_url)
+
+    hed = HEDdetector.from_pretrained('lllyasviel/ControlNet')
 
     image = hed(image, scribble=True)
 
     return image
+
+
+func_dict = {
+    'canny': get_canny_image,
+    'depth': get_depth_image,
+    'openpose': get_openpose_image,
+    'scribble': get_scribble_image
+}
+
+
+def process_image(select_model, image_url):
+    if select_model in ['canny', 'depth', 'openpose', 'scribble']:
+        return func_dict[select_model](image_url)
+
+    return None

@@ -50,6 +50,11 @@
       width: 100px;
       height: 100px;
     }
+    .image_field_title{
+      font-size: 10px;
+      color: rgb(119, 119, 119);
+      font-weight: bolder;
+    }
     :global {
       .ant-input:focus,
       .ant-input:hover {

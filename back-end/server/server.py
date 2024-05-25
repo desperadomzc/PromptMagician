@@ -242,5 +242,27 @@ def get_image_rating():
     return json.dumps(result_dict)
 
 
+@app.route('/processed_image')
+def get_processed_image():
+    request_data = requestParse(request)
+    select_model = request_data['selectModel']
+    image_url = request_data['imageUrl']
+
+    # decode the image_url
+    if image_url and image_url != '':
+        image_url = urllib.parse.unquote(image_url)
+    else:
+        raise ValueError("Please provide legal image url!")
+    image_url = urllib.parse.unquote(image_url)
+
+    processed_image = process_image(select_model, image_url)
+    img_str = getImgStr(processed_image)
+
+    result_dict = {
+        'imgStr': img_str,
+    }
+    return json.dumps(result_dict)
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', threaded=True, port=5001)

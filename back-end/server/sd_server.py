@@ -64,6 +64,13 @@ pipe_openpose = pipe_openpose.to(device)
 pipe_scribble = pipe_scribble.to(device)
 print("Start inference")
 
+pipe_dict = {
+    'canny': pipe_canny,
+    'depth': pipe_depth,
+    'openpose': pipe_openpose,
+    'scribble': pipe_scribble
+}
+
 
 @app.route('/sd')
 def sd():
@@ -91,24 +98,8 @@ def sd():
     w_len = len(w_list)
     print('Guidance scale sample list:', w_list)
 
-    processed_image = None
-    selected_pipe = None
-
-    if select_model == 'canny':
-        # get canny image
-        processed_image = get_canny_image(image_url)
-        selected_pipe = pipe_canny
-    elif select_model == 'depth':
-        processed_image = get_depth_image(image_url)
-        selected_pipe = pipe_depth
-    elif select_model == 'openpose':
-        processed_image = get_openpose_image(image_url)
-        selected_pipe = pipe_openpose
-    elif select_model == 'scribble':
-        processed_image = get_scribble_image(image_url)
-        selected_pipe = pipe_scribble
-    else:
-        raise ValueError("Select model name is illegal: " + select_model)
+    processed_image = process_image(select_model, image_url)
+    selected_pipe = pipe_dict[select_model]
 
     result_dict = []
     for i in range(int(epo)):
