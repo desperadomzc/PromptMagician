@@ -1,35 +1,39 @@
-import { Dispatch } from "../store";
+import {Dispatch} from "../store";
 
 export interface parameterData {
-  promptData: string;
-  negativePromptData: string;
-  guidanceScaleData: [number, number];
-  randomSeedData: number;
+    promptData: string;
+    negativePromptData: string;
+    selectModelData: string;
+    guidanceScaleData: [number, number];
+    randomSeedData: number;
+    imageUrlData: string;
 }
 
 const initialState: parameterData = {
-  promptData: "",
-  negativePromptData: "",
-  guidanceScaleData: [0, 50],
-  randomSeedData: 0,
+    promptData: "",
+    negativePromptData: "",
+    selectModelData: "canny",
+    guidanceScaleData: [0, 50],
+    randomSeedData: 0,
+    imageUrlData: ""
 };
 
 const parameter = {
-  state: initialState,
+    state: initialState,
 
-  reducers: {
-    updateParameterState(
-      state: parameterData,
-      payload: Partial<parameterData>
-    ) {
-      return {
-        ...state,
-        ...payload,
-      };
+    reducers: {
+        updateParameterState(
+            state: parameterData,
+            payload: Partial<parameterData>
+        ) {
+            return {
+                ...state,
+                ...payload,
+            };
+        },
     },
-  },
 
-  effects: (dispatch: Dispatch) => ({}),
+    effects: (dispatch: Dispatch) => ({}),
 };
 
 export default parameter;
